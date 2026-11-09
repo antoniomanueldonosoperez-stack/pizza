@@ -1,0 +1,45 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: pizza-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: secreta
+      MARIADB_DATABASE: daw-pizza
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: pizza-phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: secreta
+    ports:
+      - "8081:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build: .
+    container_name: pizza-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/daw-pizza?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: secreta
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mariadb_data:
